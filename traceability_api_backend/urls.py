@@ -18,6 +18,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-##    path('api-imagedetection/', include('imagedetection.api.urls')),
+    path('api-imagedetection/', include('imagedetection.api.urls')),
     path('api-traceability/', include('traceability.api.urls')),
 ]

@@ -3,17 +3,16 @@ import numpy as np
 import time
 import os
 import re
-
-# tensorflow imports
-import tensorflow as tf
-import tensorflow_hub as hub
-# from core import utils
-# from core.config import cfg
-# from tensorflow.python.saved_model import tag_constants
 from datetime import datetime
 
-from ultralytics import YOLO
+# import tensorflow as tf
+# import tensorflow_hub as hub
+# # from core import utils
+# # from core.config import cfg
+# # from tensorflow.python.saved_model import tag_constants
 
+
+from ultralytics import YOLO
 # import onnxruntime as ort
 
 
@@ -23,26 +22,20 @@ class Serial_DetectionAPIView():
     # Instance attribute
     def __init__(self):
         print("loading model")
-        # weights = 'yolov8-640-v1'
-        # self.saved_model_loaded = tf.saved_model.load(
-        #     weights, tags=[tag_constants.SERVING]
+
+        self.model = YOLO("imagedetection/api/best.pt")
+
+
+
+        # self.loaded_model_digits = tf.keras.models.load_model(
+        #     ('imagedetection/api/my_model_digits_v3_3.h5'),
+        #     custom_objects={'KerasLayer':hub.KerasLayer}
         # )
 
-        # # Load the TFLite model and allocate tensors.
-        # self.interpreter = tf.lite.Interpreter(model_path="best_float32.tflite")
-        self.model = YOLO("imagedetection/api/best.pt")
-        # self.model_onnx = ort.InferenceSession("best.onnx")
-
-
-        self.loaded_model_digits = tf.keras.models.load_model(
-            ('imagedetection/api/my_model_digits_v3_3.h5'),
-            custom_objects={'KerasLayer':hub.KerasLayer}
-        )
-
-        self.loaded_model_aphabets = tf.keras.models.load_model(
-            ('imagedetection/api/my_model_alphabets_v3_5.h5'),
-            custom_objects={'KerasLayer':hub.KerasLayer}
-        )
+        # self.loaded_model_aphabets = tf.keras.models.load_model(
+        #     ('imagedetection/api/my_model_alphabets_v3_5.h5'),
+        #     custom_objects={'KerasLayer':hub.KerasLayer}
+        # )
 
 
         print("done loading model")
@@ -97,27 +90,19 @@ class Serial_DetectionAPIView():
             #     2
             # )
 
-        crop_path = r"C:\Users\MMaleka\Desktop\train_2"
-        now = datetime.now()
-        current_time = now.strftime("%H:%M:%S")
-        img_name = str(current_time).replace(":", "-")+'.jpg'
-        img_path = os.path.join(crop_path, img_name)
-        cv2.imwrite(img_path, original_image)
+        # crop_path = r"C:\Users\MMaleka\Desktop\train_2"
+        # now = datetime.now()
+        # current_time = now.strftime("%H:%M:%S")
+        # img_name = str(current_time).replace(":", "-")+'.jpg'
+        # img_path = os.path.join(crop_path, img_name)
+        # cv2.imwrite(img_path, original_image)
 
         print("box - process is complete: ", time.time()-start_time1)
         scores_list=[]
         return bounding_boxes_list, scores_list, ori_image
 
 
-    def detection_onnx(self, original_image):
 
-        inputs = self.model_onnx.get_inputs()
-        print(len(inputs))
-
-        bounding_boxes_list=[]
-        scores_list=[]
-        ori_image=[]
-        return bounding_boxes_list, scores_list, ori_image
     
     def detect_digits(self, bb_digits, frame, original_image):
 

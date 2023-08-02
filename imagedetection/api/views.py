@@ -16,8 +16,6 @@ from .sort_bb import SortBBAlgorithm
 serial = Serial_DetectionAPIView()
 # Create sort object
 sort = SortBBAlgorithm()
-from ultralytics import YOLO
-from datetime import datetime
 
 
 class Serial_DetectionAPIView(mixins.CreateModelMixin, generics.ListAPIView):
@@ -47,40 +45,38 @@ class Serial_DetectionAPIView(mixins.CreateModelMixin, generics.ListAPIView):
             counter = 0
             image = self.computeLogoFromMemoryFILE(request.FILES.get('media'))
             (bounding_boxes_list, scores_list, ori_image) = serial.detection(image)
-            # (bounding_boxes_list, scores_list) = serial.detection(image)
+
             if len(bounding_boxes_list) >= 7:
-                start_time3 = time.time()
-                (bb_digits, bb_alphabets) = sort.sortBB(image, bounding_boxes_list)
-                print("sort process complete in: ", time.time()-start_time3) 
-                start_time4 = time.time()
-                prediction_label_digits = serial.detect_digits(bb_digits, image, ori_image)
-                print("digits process complete in: ", time.time()-start_time4) 
-                prediction_label_alphabets="------"
-                start_time5 = time.time()
-                if len(bb_alphabets) == 6:
-                    prediction_label_alphabets = serial.detect_alphabets(bb_alphabets, image, ori_image)
-                    print("alphabets process complete in: ", time.time()-start_time5) 
-                    # counter +=1
+                print("bounding_boxes_list: ", bounding_boxes_list)
+                # start_time3 = time.time()
+                # (bb_digits, bb_alphabets) = sort.sortBB(image, bounding_boxes_list)
+                # print("sort process complete in: ", time.time()-start_time3) 
+                # start_time4 = time.time()
+                # prediction_label_digits = serial.detect_digits(bb_digits, image, ori_image)
+                # print("digits process complete in: ", time.time()-start_time4) 
+                # prediction_label_alphabets="------"
+                # start_time5 = time.time()
+                # if len(bb_alphabets) == 6:
+                #     prediction_label_alphabets = serial.detect_alphabets(bb_alphabets, image, ori_image)
+                #     print("alphabets process complete in: ", time.time()-start_time5) 
 
-                # bounding_boxes_list_sorted, original_image = self.detection(image, web=False)
-                # serial_number = self.final_detection(bounding_boxes_list_sorted, original_image)
-                json_object['success'] = True
-                print("shellNo: ", prediction_label_digits, " - Batch: ", prediction_label_alphabets)
-                serial_number=str(prediction_label_digits)+'-'+prediction_label_alphabets
+
+                # json_object['success'] = True
+                # print("shellNo: ", prediction_label_digits, " - Batch: ", prediction_label_alphabets)
+                # serial_number=str(prediction_label_digits)+'-'+prediction_label_alphabets
                 
                 
-                print("process complete in: ", time.time()-start_time2) 
+                # print("process complete in: ", time.time()-start_time2) 
 
-                json_object['serial_number'] = serial_number
-                json_object['shell_no'] = prediction_label_digits
-                json_object['batch'] = prediction_label_alphabets
+                # json_object['serial_number'] = serial_number
+                # json_object['shell_no'] = prediction_label_digits
+                # json_object['batch'] = prediction_label_alphabets
 
             else:
                 print("no detections...pass")
 
         else:
             print("not getting the file")
-            print("process failed in: ", time.time()-start_time2) 
 
         
         json_object['inference_time'] = round(time.time()-start_time2, 2)       
