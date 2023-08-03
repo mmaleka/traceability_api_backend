@@ -47,15 +47,9 @@ class Serial_DetectionAPIView(mixins.CreateModelMixin, generics.ListAPIView):
             (bounding_boxes_list, scores_list, ori_image) = serial.detection(image)
 
             if len(bounding_boxes_list) >= 7:
-                print("bounding_boxes_list: ", bounding_boxes_list)
-                # start_time3 = time.time()
-                # (bb_digits, bb_alphabets) = sort.sortBB(image, bounding_boxes_list)
-                # print("sort process complete in: ", time.time()-start_time3) 
-                # start_time4 = time.time()
-                # prediction_label_digits = serial.detect_digits(bb_digits, image, ori_image)
-                # print("digits process complete in: ", time.time()-start_time4) 
-                # prediction_label_alphabets="------"
-                # start_time5 = time.time()
+                (bb_digits, bb_alphabets) = sort.sortBB(image, bounding_boxes_list)
+                prediction_label_digits = serial.detect_digits(bb_digits, image, ori_image)
+                prediction_label_alphabets="------"
                 # if len(bb_alphabets) == 6:
                 #     prediction_label_alphabets = serial.detect_alphabets(bb_alphabets, image, ori_image)
                 #     print("alphabets process complete in: ", time.time()-start_time5) 
@@ -69,7 +63,7 @@ class Serial_DetectionAPIView(mixins.CreateModelMixin, generics.ListAPIView):
                 # print("process complete in: ", time.time()-start_time2) 
 
                 # json_object['serial_number'] = serial_number
-                # json_object['shell_no'] = prediction_label_digits
+                json_object['shell_no'] = prediction_label_digits
                 # json_object['batch'] = prediction_label_alphabets
 
             else:

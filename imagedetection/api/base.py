@@ -13,8 +13,36 @@ from datetime import datetime
 
 
 from ultralytics import YOLO
-# import onnxruntime as ort
+import torch
+import torchvision.datasets as datasets
+import os
+from torch.utils.data import WeightedRandomSampler, DataLoader, Dataset
+import torchvision.transforms as transforms
+import torch.nn as nn
+from PIL import Image
+from tqdm.auto import tqdm
 
+from .TinyVGG import TinyVGG
+
+
+
+class BengaliParquetDataset(Dataset):
+    
+    def __init__(self, image_array_list, transform=None):
+        
+        self.data = image_array_list
+        self.trasnform = transform
+        
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        
+        img = Image.fromarray(self.data[idx])
+        data_transform = transforms.Compose([transforms.Resize((64, 64)), transforms.ToTensor()])
+        image = data_transform(img)
+        
+        return image
 
 
 class Serial_DetectionAPIView():
@@ -23,9 +51,16 @@ class Serial_DetectionAPIView():
     def __init__(self):
         print("loading model")
 
+        # Setup device-agnostic code
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
         self.model = YOLO("imagedetection/api/best.pt")
-
-
+        self.loaded_model_digits =  TinyVGG(input_shape=3, # number of color channels (3 for RGB) 
+                        hidden_units=10, 
+                        output_shape=10).to(self.device)
+        
+        self.loaded_model_digits.load_state_dict(torch.load('imagedetection/api/model_digits.pth', map_location=torch.device('cpu')))
+        self.loaded_model_digits.eval()
 
         # self.loaded_model_digits = tf.keras.models.load_model(
         #     ('imagedetection/api/my_model_digits_v3_3.h5'),
@@ -39,6 +74,38 @@ class Serial_DetectionAPIView():
 
 
         print("done loading model")
+
+        
+
+
+    def pytorch_inference(self, X, BATCH_SIZE=32):
+         
+        test_dataset = BengaliParquetDataset(
+            image_array_list=X,
+        )
+
+        data_loader_test = DataLoader(
+            test_dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=False
+        )
+
+        with torch.inference_mode():
+            y_preds = []
+            for X_in in tqdm(data_loader_test, desc="Making predictions"):
+                # Send data and targets to target device
+                X_in = X_in.to(self.device)
+                # Do the forward pass
+                y_logit = self.loaded_model_digits(X_in)
+                # Turn predictions from logits -> prediction probabilities -> predictions labels
+                y_pred = torch.softmax(y_logit, dim=1).argmax(dim=1)
+                # Put predictions on CPU for evaluation
+                y_preds.append(y_pred.cpu())
+
+
+        return y_preds
+
+
 
     
 
@@ -109,23 +176,30 @@ class Serial_DetectionAPIView():
         labels = ['0','1','2','3','4','5','6','7','8','9']
         bb_digits_sorted=sorted(bb_digits, key=lambda x: x[0])
         shell_no = ''
-        X3 = []
+        X = []
         for i in range(len(bb_digits_sorted)):
-            # try:
-                xmin=bb_digits_sorted[i][0]
-                ymin=bb_digits_sorted[i][1]
-                xmax=xmin+bb_digits_sorted[i][2]
-                ymax=ymin+bb_digits_sorted[i][3]
-                # prinnow = datetime.now()t("xmin, ymin, xmax, ymax: ", xmin, ymin, xmax, ymax)
-                now = datetime.now()
-                current_time = now.strftime("%H:%M:%S")
-                cropped_img = original_image[int(ymin)-1:int(ymax)+1, int(xmin)-1:int(xmax)+1]
-                
+            xmin=bb_digits_sorted[i][0]
+            ymin=bb_digits_sorted[i][1]
+            xmax=xmin+bb_digits_sorted[i][2]
+            ymax=ymin+bb_digits_sorted[i][3]
+            now = datetime.now()
+            current_time = now.strftime("%H:%M:%S")
+            cropped_img = original_image[int(ymin)-1:int(ymax)+1, int(xmin)-1:int(xmax)+1]
+            resized_img_test = cv2.resize(cropped_img,(64,64))
+            X.append(resized_img_test)
+
+        X = np.array(X)
+        y_preds = self.pytorch_inference(X)
+        for index in y_preds[0].tolist():
+            prediction_label = labels[index].upper()
+            shell_no = shell_no+prediction_label
+
+        
 
                 
-                resized_img_test = cv2.resize(cropped_img,(50,50))
-                resized_img_test_scale = resized_img_test / 255
-                X3.append(resized_img_test_scale)
+                # resized_img_test = cv2.resize(cropped_img,(50,50))
+                # resized_img_test_scale = resized_img_test / 255
+                # X3.append(resized_img_test_scale)
                 # x = np.expand_dims(resized_img_test_scale, axis=0)
                 # prediction = self.loaded_model_digits.predict(x)
                 # y_predicted_labels = [np.argmax(i) for i in prediction]
@@ -176,24 +250,24 @@ class Serial_DetectionAPIView():
             #     print("error detecting digits: ", e)
 
 
-        start_time2 = time.time()
-        try:
-            X3 = np.array(X3)
-            print("X3.shape: ", X3.shape)
-            predictions=self.loaded_model_digits.predict(X3)
-            y_predicted_labels = [np.argmax(i) for i in predictions]
-            print(y_predicted_labels)
-            for index in y_predicted_labels:
-                prediction_label = labels[index].upper()
-                shell_no = shell_no+prediction_label
-        except Exception as e:
-                shell_no="---"
-                print("error detecting digits: ", e)
-        print("digits1 process complete in: ", time.time()-start_time2)
+        # start_time2 = time.time()
+        # try:
+        #     X3 = np.array(X3)
+        #     print("X3.shape: ", X3.shape)
+        #     predictions=self.loaded_model_digits.predict(X3)
+        #     y_predicted_labels = [np.argmax(i) for i in predictions]
+        #     print(y_predicted_labels)
+        #     for index in y_predicted_labels:
+        #         prediction_label = labels[index].upper()
+        #         shell_no = shell_no+prediction_label
+        # except Exception as e:
+        #         shell_no="---"
+        #         print("error detecting digits: ", e)
+        # print("digits1 process complete in: ", time.time()-start_time2)
 
         
-
         return shell_no
+        
     
 
 
