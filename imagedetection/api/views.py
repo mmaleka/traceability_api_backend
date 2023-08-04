@@ -50,21 +50,14 @@ class Serial_DetectionAPIView(mixins.CreateModelMixin, generics.ListAPIView):
                 (bb_digits, bb_alphabets) = sort.sortBB(image, bounding_boxes_list)
                 prediction_label_digits = serial.detect_digits(bb_digits, image, ori_image)
                 prediction_label_alphabets="------"
-                # if len(bb_alphabets) == 6:
-                #     prediction_label_alphabets = serial.detect_alphabets(bb_alphabets, image, ori_image)
-                #     print("alphabets process complete in: ", time.time()-start_time5) 
+                if len(bb_alphabets) == 6:
+                    prediction_label_alphabets = serial.detect_alphabets(bb_alphabets, image, ori_image)
 
+                json_object['success'] = True
 
-                # json_object['success'] = True
-                # print("shellNo: ", prediction_label_digits, " - Batch: ", prediction_label_alphabets)
-                # serial_number=str(prediction_label_digits)+'-'+prediction_label_alphabets
-                
-                
-                # print("process complete in: ", time.time()-start_time2) 
-
-                # json_object['serial_number'] = serial_number
+                json_object['serial_number'] = serial_number
                 json_object['shell_no'] = prediction_label_digits
-                # json_object['batch'] = prediction_label_alphabets
+                json_object['batch'] = prediction_label_alphabets
 
             else:
                 print("no detections...pass")

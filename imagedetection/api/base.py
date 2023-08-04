@@ -62,6 +62,14 @@ class Serial_DetectionAPIView():
         self.loaded_model_digits.load_state_dict(torch.load('imagedetection/api/model_digits.pth', map_location=torch.device('cpu')))
         self.loaded_model_digits.eval()
 
+
+        self.loaded_model_alphabets =  TinyVGG(input_shape=3, # number of color channels (3 for RGB) 
+                        hidden_units=10, 
+                        output_shape=23).to(self.device)
+        
+        self.loaded_model_alphabets.load_state_dict(torch.load('imagedetection/api/model_alphabets.pth', map_location=torch.device('cpu')))
+        self.loaded_model_alphabets.eval()
+
         # self.loaded_model_digits = tf.keras.models.load_model(
         #     ('imagedetection/api/my_model_digits_v3_3.h5'),
         #     custom_objects={'KerasLayer':hub.KerasLayer}
@@ -78,7 +86,7 @@ class Serial_DetectionAPIView():
         
 
 
-    def pytorch_inference(self, X, BATCH_SIZE=32):
+    def pytorch_inference(self, X, model, BATCH_SIZE=32):
          
         test_dataset = BengaliParquetDataset(
             image_array_list=X,
@@ -96,7 +104,7 @@ class Serial_DetectionAPIView():
                 # Send data and targets to target device
                 X_in = X_in.to(self.device)
                 # Do the forward pass
-                y_logit = self.loaded_model_digits(X_in)
+                y_logit = model(X_in)
                 # Turn predictions from logits -> prediction probabilities -> predictions labels
                 y_pred = torch.softmax(y_logit, dim=1).argmax(dim=1)
                 # Put predictions on CPU for evaluation
@@ -189,10 +197,10 @@ class Serial_DetectionAPIView():
             X.append(resized_img_test)
 
         X = np.array(X)
-        y_preds = self.pytorch_inference(X)
+        y_preds = self.pytorch_inference(X, self.loaded_model_digits)
         for index in y_preds[0].tolist():
             prediction_label = labels[index].upper()
-            shell_no = shell_no+prediction_label
+            shell_no += prediction_label
 
         
 
@@ -273,10 +281,10 @@ class Serial_DetectionAPIView():
 
     def detect_alphabets(self, bb_alphabets, frame, original_image):
 
-        labels = ['a','b','c','d','e','f','g','h','j','k','l','m','n','p','r','s','t','u','v','w','x','y','z']
+        labels = ['A','B','C','D','E','F','G','H','J','K','L','M','N','P','R','S','T','U','V','W','X','Y','Z']
         bb_alphabets_sorted=sorted(bb_alphabets, key=lambda x: x[0])
         batch = ''
-        X2 = []
+        X = []
         for i in range(len(bb_alphabets_sorted)):
             xmin=bb_alphabets_sorted[i][0]
             ymin=bb_alphabets_sorted[i][1]
@@ -285,12 +293,22 @@ class Serial_DetectionAPIView():
             now = datetime.now()
             current_time = now.strftime("%H:%M:%S")
             cropped_img = original_image[int(ymin)-1:int(ymax)+1, int(xmin)-1:int(xmax)+1]
+            resized_img_test = cv2.resize(cropped_img,(64,64))
+            X.append(resized_img_test)
+        
+
+        X = np.array(X)
+        y_preds = self.pytorch_inference(X, self.loaded_model_alphabets)
+        print(y_preds[0].tolist())
+        for index in y_preds[0].tolist():
+            prediction_label = labels[index].upper()
+            batch += prediction_label
 
 
-            resized_img_test = cv2.resize(cropped_img,(50,50))
-            resized_img_test_scale = resized_img_test / 255
+            # resized_img_test = cv2.resize(cropped_img,(50,50))
+            # resized_img_test_scale = resized_img_test / 255
             # x = np.expand_dims(resized_img_test_scale, axis=0)
-            X2.append(resized_img_test_scale)
+            # X2.append(resized_img_test_scale)
 
             # prediction = self.loaded_model_aphabets.predict(x)
             # # prediction_1 = self.loaded_model_aphabets_v1.predict(x)
@@ -349,25 +367,21 @@ class Serial_DetectionAPIView():
             # batch = batch+prediction_label
 
 
-        start_time2 = time.time()
-        try:
-            X2 = np.array(X2)
-            print("X2.shape: ", X2.shape)
-            predictions=self.loaded_model_aphabets.predict(X2)
-            y_predicted_labels = [np.argmax(i) for i in predictions]
-            print(y_predicted_labels)
-            for index in y_predicted_labels:
-                prediction_label = labels[index].upper()
-                batch = batch+prediction_label
-        except Exception as e:
-                batch="------"
-                print("error detecting letters: ", e)
-        print("alphabets1 process complete in: ", time.time()-start_time2)
+        # start_time2 = time.time()
+        # try:
+        #     X2 = np.array(X2)
+        #     print("X2.shape: ", X2.shape)
+        #     predictions=self.loaded_model_aphabets.predict(X2)
+        #     y_predicted_labels = [np.argmax(i) for i in predictions]
+        #     print(y_predicted_labels)
+        #     for index in y_predicted_labels:
+        #         prediction_label = labels[index].upper()
+        #         batch = batch+prediction_label
+        # except Exception as e:
+        #         batch="------"
+        #         print("error detecting letters: ", e)
+        # print("alphabets1 process complete in: ", time.time()-start_time2)
 
-        print("batch: ", batch)
-        # arr = arr.reshape(6,50,50,3)
-        # prediction = self.loaded_model_aphabets.predict(x)
-        # print("prediction: ", prediction)
 
         return batch
     
