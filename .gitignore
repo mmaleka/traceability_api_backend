@@ -5,3 +5,5 @@ my_model_alphabets_v3_5.h5
 my_model_digits_v3_3.h5
 db.sqlite3
 model_alphabets.pth
+model_alphabets_6.pth
+model_alphabets_20.pth
