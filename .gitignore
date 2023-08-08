@@ -1,9 +1,3 @@
-best_2.pt
-best_3.pt
-my_model_alphabets_v3_4.h5
-my_model_alphabets_v3_5.h5
-my_model_digits_v3_3.h5
-db.sqlite3
-model_alphabets.pth
-model_alphabets_6.pth
-model_alphabets_20.pth
+scanner_api.pem
+docker-compose.yml
+Dockerfile
