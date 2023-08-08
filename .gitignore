@@ -1,3 +1,3 @@
-scanner_api.pem
+*.pem
 docker-compose.yml
 Dockerfile
