@@ -68,7 +68,7 @@ class Serial_DetectionAPIView():
                         hidden_units=10, 
                         output_shape=23).to(self.device)
         
-        self.loaded_model_alphabets.load_state_dict(torch.load('imagedetection/api/model_alphabets_61.pth', map_location=torch.device('cpu')))
+        self.loaded_model_alphabets.load_state_dict(torch.load('imagedetection/api/model_alphabets_31.pth', map_location=torch.device('cpu')))
         self.loaded_model_alphabets.eval()
 
         # self.loaded_model_digits = tf.keras.models.load_model(
